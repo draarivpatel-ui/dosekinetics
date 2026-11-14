@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DoseKinetics | Offline Pharmacokinetic & Renal Dosing Studio</title>
+  <meta name="description" content="Educational 1- and 2-compartment pharmacokinetic simulator, Cockcroft-Gault renal dosing calculator, and therapeutic window regimen optimizer.">
+  <meta name="author" content="Aariv Patel">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f1722'/%3E%3Cpath d='M5 23 C9 8,13 8,17 17 C20 22,24 12,27 15' fill='none' stroke='%232dd4bf' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#0f1722" stroke="#233246"></rect>
+        <path d="M5 23 C9 8, 13 8, 17 17 C20 22, 24 12, 27 15" fill="none" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"></path>
+        <line x1="5" y1="11" x2="27" y2="11" stroke="#f59e0b" stroke-dasharray="3 2" stroke-width="1.2"></line>
+      </svg>
+      <div>
+        <span class="brand-name">DoseKinetics</span>
+        <span class="brand-sub">Multi-Compartment PK &amp; Renal Dosing Studio</span>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:0">
+      <span class="badge">Offline Deterministic Engine</span>
+      <span class="badge badge-warn">Educational Simulation Only</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>Explore <span>Therapeutic Windows</span> Without Blind Guessing</h1>
+        <p>Simulate multi-dose 1- and 2-compartment concentration curves, scale clearance via Cockcroft-Gault renal function, test missed or delayed doses, and solve practical regimens that stay inside [MEC, MTC].</p>
+        <div class="disclaimer-bar">
+          <strong>Educational Scope Notice:</strong> All compound presets are illustrative literature-range fixtures. DoseKinetics runs offline in your browser for PK education and visualization, and is not clinical medical advice.
+        </div>
+      </div>
+      <div class="readout-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Cockcroft-Gault CrCl</div>
+          <div class="kpi-value" id="kpi-crcl">-</div>
+          <div class="kpi-sub" id="kpi-crcl-sub">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Patient Half-Life</div>
+          <div class="kpi-value" id="kpi-halflife">-</div>
+          <div class="kpi-sub" id="kpi-halflife-sub">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Steady Peak / Trough</div>
+          <div class="kpi-value" id="kpi-css">-</div>
+          <div class="kpi-sub" id="kpi-css-sub">-</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Time in Therapeutic Window</div>
+          <div class="kpi-value" id="kpi-tiw">-</div>
+          <div class="kpi-sub" id="kpi-tiw-sub">-</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="DoseKinetics Views">
+      <button class="tab" role="tab" id="tab-curves" aria-selected="true" aria-controls="panel-curves" type="button">01 Regimen &amp; Curves</button>
+      <button class="tab" role="tab" id="tab-twocomp" aria-selected="false" aria-controls="panel-twocomp" type="button">02 Two-Compartment</button>
+      <button class="tab" role="tab" id="tab-renal" aria-selected="false" aria-controls="panel-renal" type="button">03 Renal &amp; Equations</button>
+      <button class="tab" role="tab" id="tab-optimizer" aria-selected="false" aria-controls="panel-optimizer" type="button">04 Optimizer &amp; Data</button>
+    </div>
+
+    <div class="layout-split">
+      <aside class="controls-col">
+        <div class="card">
+          <h2>Drug Fixture &amp; Regimen</h2>
+          <div class="field">
+            <label for="drug-select">Illustrative Drug Profile</label>
+            <select id="drug-select"></select>
+          </div>
+          <p id="drug-note" style="font-size:0.78rem; color:var(--muted); margin:0 0 0.85rem;"></p>
+          <div class="field">
+            <label for="route-select">Administration Route</label>
+            <select id="route-select">
+              <option value="infusion">IV Intermittent Infusion</option>
+              <option value="bolus">IV Bolus</option>
+              <option value="oral">Oral / Extravascular</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="dose-input">Maintenance Dose (mg)</label>
+            <input id="dose-input" type="number" min="25" max="4000" step="25" value="1000">
+          </div>
+          <div class="field">
+            <label for="interval-select">Dosing Interval (tau)</label>
+            <select id="interval-select">
+              <option value="6">Every 6 hours (q6h)</option>
+              <option value="8">Every 8 hours (q8h)</option>
+              <option value="12" selected>Every 12 hours (q12h)</option>
+              <option value="24">Every 24 hours (q24h)</option>
+              <option value="36">Every 36 hours (q36h)</option>
+              <option value="48">Every 48 hours (q48h)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="num-doses-input">Doses Simulated</label>
+            <input id="num-doses-input" type="number" min="2" max="20" value="8">
+          </div>
+          <div class="field">
+            <label for="loading-input">First Loading Dose (mg, 0 = none)</label>
+            <input id="loading-input" type="number" min="0" max="6000" step="50" value="0">
+          </div>
+          <div class="field">
+            <label for="mec-input">MEC Effective Floor (mg/L)</label>
+            <input id="mec-input" type="number" min="0.1" step="0.5" value="10">
+          </div>
+          <div class="field">
+            <label for="mtc-input">MTC Toxic Ceiling (mg/L)</label>
+            <input id="mtc-input" type="number" min="1" step="0.5" value="40">
+          </div>
+          <div class="btn-row">
+            <button id="btn-auto-loading" class="btn btn-primary" type="button">Solve Loading Dose</button>
+            <button id="btn-export-csv" class="btn" type="button">Export CSV</button>
+            <button id="btn-export-json" class="btn" type="button">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Patient Covariates</h2>
+          <div class="field">
+            <label for="sex-select">Biological Sex (CG &amp; IBW)</label>
+            <select id="sex-select">
+              <option value="male">Male (factor 1.00)</option>
+              <option value="female">Female (factor 0.85)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="age-input">Age (years)</label>
+            <input id="age-input" type="number" min="18" max="100" value="48">
+          </div>
+          <div class="field">
+            <label for="weight-input">Actual Weight (kg)</label>
+            <input id="weight-input" type="number" min="35" max="220" value="76">
+          </div>
+          <div class="field">
+            <label for="height-input">Height (cm)</label>
+            <input id="height-input" type="number" min="130" max="220" value="175">
+          </div>
+          <div class="field">
+            <label for="scr-input">Serum Creatinine (mg/dL)</label>
+            <input id="scr-input" type="number" min="0.4" max="10" step="0.1" value="1.0">
+          </div>
+        </div>
+      </aside>
+
+      <section>
+        <div id="panel-curves" class="panel is-active" role="tabpanel" aria-labelledby="tab-curves">
+          <div class="card">
+            <h2>Plasma Concentration-Time Profile <span class="mono" style="font-size:0.78rem; color:var(--sky)">Blue: Nominal | Pink Dashed: Perturbed</span></h2>
+            <svg id="chart-1comp" class="chart-svg" viewBox="0 0 820 340" role="img" aria-label="Plasma concentration versus time chart"></svg>
+          </div>
+          <div class="card">
+            <h2>Missed / Delayed / Doubled Dose What-If Perturbation</h2>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.75rem;">
+              <div class="field">
+                <label for="perturb-type">Perturbation Event</label>
+                <select id="perturb-type">
+                  <option value="none">None</option>
+                  <option value="miss">Missed Dose</option>
+                  <option value="double">Doubled Dose</option>
+                  <option value="delay">Delayed Dose</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="perturb-index">Target Dose #</label>
+                <input id="perturb-index" type="number" min="1" max="20" value="4">
+              </div>
+              <div class="field">
+                <label for="delay-hours">Delay Offset (hours)</label>
+                <input id="delay-hours" type="number" min="1" max="24" value="4">
+              </div>
+            </div>
+            <p id="perturb-summary" style="margin:0.25rem 0 0; font-size:0.84rem; color:var(--muted);"></p>
+          </div>
+        </div>
+
+        <div id="panel-twocomp" class="panel" role="tabpanel" aria-labelledby="tab-twocomp">
+          <div class="card">
+            <h2>Two-Compartment Distribution (RK4 + Mass Conservation)</h2>
+            <svg id="chart-2comp" class="chart-svg" viewBox="0 0 820 320" role="img" aria-label="Two compartment central plasma versus peripheral mass chart"></svg>
+            <div class="formula-list" style="margin-top:0.9rem;">
+              <div class="formula-item">Distribution Macro-Constant alpha<code id="two-alpha">-</code></div>
+              <div class="formula-item">Elimination Macro-Constant beta<code id="two-beta">-</code></div>
+              <div class="formula-item">Steady-State Volume Vss<code id="two-vss">-</code></div>
+              <div class="formula-item">RK4 Mass Conservation<code id="two-mass">-</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-renal" class="panel" role="tabpanel" aria-labelledby="tab-renal">
+          <div class="card">
+            <h2>Step-by-Step Pharmacokinetic Arithmetic</h2>
+            <div class="formula-list">
+              <div class="formula-item">Ideal &amp; Dosing Weight<code id="calc-ibw">-</code></div>
+              <div class="formula-item">Cockcroft-Gault CrCl<code id="calc-crcl">-</code></div>
+              <div class="formula-item">Renal-Adjusted Clearance<code id="calc-cl">-</code></div>
+              <div class="formula-item">Elimination Constant &amp; t1/2<code id="calc-ke">-</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-optimizer" class="panel" role="tabpanel" aria-labelledby="tab-optimizer">
+          <div class="card">
+            <h2>Recommended Maintenance &amp; Loading Regimens</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Rank</th><th>Regimen</th><th>Loading Dose</th><th>Css Peak</th><th>Css Trough</th><th>% In Window</th><th>Status</th></tr>
+                </thead>
+                <tbody id="optimizer-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Sampled Concentration Table (Every 4 Hours)</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Time</th><th>Nominal Conc</th><th>Comparison Conc</th><th>Therapeutic Zone</th></tr>
+                </thead>
+                <tbody id="curve-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/pk-engine.js"></script>
+  <script src="js/ui-svg.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

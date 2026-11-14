@@ -1,0 +1,11 @@
+{
+  "name": "dosekinetics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline multi-compartment pharmacokinetic simulator, Cockcroft-Gault renal dosing calculator, and therapeutic window regimen solver.",
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "author": "Aariv Patel",
+  "license": "MIT"
+}

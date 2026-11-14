@@ -1,0 +1,7 @@
+As pharmacology students, many will learn how to calculate kidney clearance and half-life but never see the effects of patients receiving repeated doses. This is why I created DoseKinetics to allow users to plot out the effect of dosing curves without needing any extra package.
+
+Once the web application loads, the glycopeptide preset will display the curve for eight intravenous infusions in relation to the green therapeutic window from the minimum effective concentration to toxic ceiling.
+
+Upon increasing the serum creatinine to two point four, along with increasing the patient's age, the patient's Cockcroft-Gault clearance is immediately lowered. The half-life more than doubles and trough levels start surpassing the safe limits.
+
+By pressing the Solve Loading Dose button, you calculate a larger first dose that lands within range on hour zero. You will be able to run simulations for missing your fourth dose or have a four-hour delay through the pink dashed line overlay. On the Two-Compartment tab, you will have an RK4 solver checking the microgram mass balance with each step, while also having the Optimizer outputting CSV and JSON tables. All five presets are educational fixtures, not medical advice.
