@@ -17,7 +17,7 @@ Two-compartment simulation supports Central, Peripheral, and Depot compartments,
 ## Testing
 
 ```bash
-node --test tests/
+npm test
 ```
 
-Thirty tests pass with `node --test tests/`.
+Thirty tests pass with `npm test`.
