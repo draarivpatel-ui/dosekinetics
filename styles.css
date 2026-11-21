@@ -15,6 +15,10 @@
 }
 
 * { box-sizing: border-box; }
+:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
 html, body {
   margin: 0;
   padding: 0;
@@ -99,7 +103,7 @@ html, body {
   border-radius: 10px;
   padding: 0.75rem 0.9rem;
 }
-.kpi-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.05em; }
 .kpi-value { font-size: 1.35rem; font-weight: 700; font-family: var(--mono); color: var(--text); margin-top: 0.15rem; }
 .kpi-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
 
@@ -171,8 +175,6 @@ html, body {
   font-family: var(--mono);
   font-size: 0.86rem;
 }
-.field input[type="range"] { width: 100%; accent-color: var(--teal); }
-
 .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 .btn {
   appearance: none;
@@ -236,6 +238,12 @@ th { color: var(--muted); font-weight: 600; font-family: var(--sans); }
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 0.75rem;
 }
+.formula-list.mt-09 { margin-top: 0.9rem; }
+.mt-0 { margin-top: 0; }
+#drug-note { font-size: 0.78rem; color: var(--muted); margin: 0 0 0.85rem; }
+.legend-note { font-size: 0.78rem; color: var(--sky); }
+.perturb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+#perturb-summary { margin: 0.25rem 0 0; font-size: 0.84rem; color: var(--muted); }
 .formula-item {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -253,6 +261,7 @@ th { color: var(--muted); font-weight: 600; font-family: var(--sans); }
 
 @media (max-width: 900px) {
   .hero, .layout-split { grid-template-columns: 1fr; }
+  .perturb-grid { grid-template-columns: 1fr; }
 }
 @media print {
   .site-header, .tabs, .controls-col { display: none; }

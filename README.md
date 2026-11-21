@@ -20,4 +20,4 @@ Two-compartment simulation supports Central, Peripheral, and Depot compartments,
 node --test tests/
 ```
 
-Thirty tests pass with `node --test tests/`.
+The suite has 189 tests and passes with `node --test tests/` (zero dependencies).

@@ -107,7 +107,12 @@ test("DOM smoke: index.html loads all expected control IDs and DoseKineticsApp b
   const Svg = svgCtx.DoseKineticsSvg;
 
   // Load app.js via factory with mock Engine & Svg
-  const sandbox = { document: doc, Math, Number, Object, String, URL, Blob: function () {} };
+  // Debounced renders run synchronously under the mock so assertions see the latest state.
+  const sandbox = {
+    document: doc, Math, Number, Object, String, URL, Blob: function () {},
+    setTimeout: (fn) => { fn(); return 0; },
+    clearTimeout: () => {},
+  };
   sandbox.globalThis = sandbox;
   sandbox.DoseKineticsEngine = Engine;
   sandbox.DoseKineticsSvg = Svg;

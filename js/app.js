@@ -82,25 +82,63 @@
     }
 
     function bindTabs() {
-      const tabs = d.querySelectorAll(".tab");
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          tabs.forEach((t) => t.setAttribute("aria-selected", "false"));
-          tab.setAttribute("aria-selected", "true");
-          const target = tab.getAttribute("aria-controls");
-          d.querySelectorAll(".panel").forEach((p) => {
-            p.classList.toggle("is-active", p.id === target);
-          });
+      const tabs = Array.from(d.querySelectorAll(".tab"));
+      const activateTab = (tab, focus) => {
+        tabs.forEach((t) => {
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+          t.setAttribute("tabindex", t === tab ? "0" : "-1");
         });
+        const target = tab.getAttribute("aria-controls");
+        d.querySelectorAll(".panel").forEach((p) => {
+          p.classList.toggle("is-active", p.id === target);
+        });
+        if (focus && tab.focus) tab.focus();
+      };
+      tabs.forEach((tab, i) => {
+        tab.addEventListener("click", () => activateTab(tab, false));
+        tab.addEventListener("keydown", (ev) => {
+          const last = tabs.length - 1;
+          let next = null;
+          if (ev.key === "ArrowRight" || ev.key === "ArrowDown") next = tabs[i === last ? 0 : i + 1];
+          else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") next = tabs[i === 0 ? last : i - 1];
+          else if (ev.key === "Home") next = tabs[0];
+          else if (ev.key === "End") next = tabs[last];
+          if (next) {
+            ev.preventDefault();
+            activateTab(next, true);
+          }
+        });
+      });
+      tabs.forEach((t) => {
+        t.setAttribute("tabindex", t.getAttribute("aria-selected") === "true" ? "0" : "-1");
       });
     }
 
     function bindInputs() {
+      // Numeric inputs clamp into a documented range AND reject non-finite text such as 1e999;
+      // an unguarded Infinity would make the engine throw on every subsequent render.
+      const num = (v, fallback, lo, hi) => {
+        const n = Number(v);
+        return Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : fallback));
+      };
+
+      let renderTimer = 0;
+      const scheduleRender = () => {
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(() => {
+          try {
+            render();
+          } catch (err) {
+            console.error("simulation render failed", err);
+          }
+        }, 60);
+      };
+
       const onChange = (id, fn) => {
         const el = $(id);
         if (el) {
-          el.addEventListener("input", () => { fn(el.value); render(); });
-          el.addEventListener("change", () => { fn(el.value); render(); });
+          el.addEventListener("input", () => { fn(el.value); scheduleRender(); });
+          el.addEventListener("change", () => { fn(el.value); scheduleRender(); });
         }
       };
 
@@ -110,20 +148,20 @@
       }
 
       onChange("route-select", (v) => { state.route = v; });
-      onChange("dose-input", (v) => { state.doseMg = Math.max(25, Number(v) || 250); });
-      onChange("interval-select", (v) => { state.intervalH = Math.max(4, Number(v) || 12); });
-      onChange("num-doses-input", (v) => { state.numDoses = Math.min(20, Math.max(2, Math.round(Number(v) || 8))); });
-      onChange("loading-input", (v) => { state.loadingDoseMg = Math.max(0, Number(v) || 0); });
-      onChange("mec-input", (v) => { state.mecMgL = Math.max(0.1, Number(v) || 1); });
-      onChange("mtc-input", (v) => { state.mtcMgL = Math.max(state.mecMgL + 0.5, Number(v) || 20); });
+      onChange("dose-input", (v) => { state.doseMg = num(v, 250, 25, 4000); });
+      onChange("interval-select", (v) => { state.intervalH = num(v, 12, 4, 48); });
+      onChange("num-doses-input", (v) => { state.numDoses = Math.round(num(v, 8, 2, 20)); });
+      onChange("loading-input", (v) => { state.loadingDoseMg = num(v, 0, 0, 6000); });
+      onChange("mec-input", (v) => { state.mecMgL = num(v, 1, 0.1, 50); });
+      onChange("mtc-input", (v) => { state.mtcMgL = num(v, 20, state.mecMgL + 0.5, 100); });
       onChange("sex-select", (v) => { state.sex = v; });
-      onChange("age-input", (v) => { state.age = Math.min(100, Math.max(18, Number(v) || 40)); });
-      onChange("weight-input", (v) => { state.weightKg = Math.min(220, Math.max(35, Number(v) || 70)); });
-      onChange("height-input", (v) => { state.heightCm = Math.min(220, Math.max(130, Number(v) || 170)); });
-      onChange("scr-input", (v) => { state.serumCreatinine = Math.min(10, Math.max(0.4, Number(v) || 1.0)); });
+      onChange("age-input", (v) => { state.age = num(v, 40, 18, 100); });
+      onChange("weight-input", (v) => { state.weightKg = num(v, 70, 35, 220); });
+      onChange("height-input", (v) => { state.heightCm = num(v, 170, 130, 220); });
+      onChange("scr-input", (v) => { state.serumCreatinine = num(v, 1.0, 0.4, 10); });
       onChange("perturb-type", (v) => { state.perturbType = v; });
-      onChange("perturb-index", (v) => { state.perturbIndex = Math.max(1, Math.round(Number(v) || 4)); });
-      onChange("delay-hours", (v) => { state.delayHours = Math.max(1, Number(v) || 4); });
+      onChange("perturb-index", (v) => { state.perturbIndex = Math.round(num(v, 4, 1, 20)); });
+      onChange("delay-hours", (v) => { state.delayHours = num(v, 4, 1, 24); });
 
       const loadBtn = $("btn-auto-loading");
       if (loadBtn) {
@@ -169,7 +207,8 @@
             },
             summary: out.nominal.summary
           };
-          triggerDownload("dosekinetics_report.json", JSON.stringify(payload, null, 2), "application/json");
+          const report = Engine.exportReportJson(payload);
+          triggerDownload("dosekinetics_report.json", report.json, "application/json");
         });
       }
     }
@@ -305,21 +344,32 @@
       setText("calc-cl", `CL_pt = ${drug.clRefLPerH.toFixed(2)} * [(1 - ${drug.renalFractionFr}) + ${drug.renalFractionFr} * (${pk.metrics.crClMlMin.toFixed(1)} / ${drug.crClRefMlMin})] = ${pk.clLPerH.toFixed(2)} L/h`);
       setText("calc-ke", `ke = CL_pt / Vd = ${pk.clLPerH.toFixed(2)} / ${pk.vdL.toFixed(1)} = ${pk.kePerH.toFixed(4)} /h (t1/2 = ${pk.halfLifeH.toFixed(2)} h)`);
 
-      // Optimizer table
+      // Optimizer table. Rows are built with DOM nodes + textContent only, so a value coming back
+      // from the engine can never be reinterpreted as markup.
+      const addCell = (tr, text, className) => {
+        const td = d.createElement("td");
+        td.textContent = text;
+        if (className) td.className = className;
+        tr.appendChild(td);
+        return td;
+      };
       const optBody = $("optimizer-body");
       if (optBody) {
-        optBody.innerHTML = "";
+        optBody.textContent = "";
         optimizer.topCandidates.forEach((cand, idx) => {
           const tr = d.createElement("tr");
-          tr.innerHTML = `
-            <td>${idx + 1}</td>
-            <td>${cand.doseMg} mg q${cand.intervalH}h</td>
-            <td>${cand.loadingDoseMg} mg</td>
-            <td>${cand.cssPeak.toFixed(1)}</td>
-            <td>${cand.cssTrough.toFixed(1)}</td>
-            <td>${cand.timeInWindowPct.toFixed(0)}%</td>
-            <td><span class="${cand.inWindow ? "pill-ok" : "pill-warn"}">${cand.inWindow ? "In Window" : "Out of Band"}</span></td>
-          `;
+          addCell(tr, String(idx + 1));
+          addCell(tr, `${cand.doseMg} mg q${cand.intervalH}h`);
+          addCell(tr, `${cand.loadingDoseMg} mg`);
+          addCell(tr, cand.cssPeak.toFixed(1));
+          addCell(tr, cand.cssTrough.toFixed(1));
+          addCell(tr, `${cand.timeInWindowPct.toFixed(0)}%`);
+          const td = d.createElement("td");
+          const pill = d.createElement("span");
+          pill.className = cand.inWindow ? "pill-ok" : "pill-warn";
+          pill.textContent = cand.inWindow ? "In Window" : "Out of Band";
+          td.appendChild(pill);
+          tr.appendChild(td);
           optBody.appendChild(tr);
         });
       }
@@ -339,14 +389,17 @@
       // Accessible curve sample table (every 4 hours)
       const curveBody = $("curve-table-body");
       if (curveBody) {
-        curveBody.innerHTML = "";
+        curveBody.textContent = "";
         const stride = Math.max(1, Math.round(4 / 0.1));
         for (let i = 0; i < nominal.points.length; i += stride) {
           const p = nominal.points[i];
           const cp = hasCompare && comparison.points[i] ? comparison.points[i].conc.toFixed(2) : "-";
           const zone = p.conc > state.mtcMgL ? "Above MTC" : p.conc < state.mecMgL ? "Below MEC" : "Therapeutic";
           const tr = d.createElement("tr");
-          tr.innerHTML = `<td>${p.timeH.toFixed(1)} h</td><td>${p.conc.toFixed(2)} mg/L</td><td>${cp}</td><td>${zone}</td>`;
+          addCell(tr, `${p.timeH.toFixed(1)} h`);
+          addCell(tr, `${p.conc.toFixed(2)} mg/L`);
+          addCell(tr, cp);
+          addCell(tr, zone);
           curveBody.appendChild(tr);
         }
       }
